@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_theolive/theolive_view.dart';
-import 'package:flutter_theolive/theolive_viewcontroller.dart';
-
+import 'package:theolive/theolive.dart';
 import 'fullscreen_page.dart';
 
 
@@ -23,13 +21,12 @@ class MoviePage extends StatefulWidget {
   State<MoviePage> createState() => _MoviePageState();
 }
 
-class _MoviePageState extends State<MoviePage> implements THEOliveViewControllerEventListener {
+class _MoviePageState extends State<MoviePage> with THEOliveEventListener {
 
-  late THEOliveViewController _theoController;
-  GlobalKey playerUniqueKey = GlobalKey(debugLabel: "playerUniqueKey");
+  late THEOlive _theoLive;
 
   void _callLoadChannel() {
-    _theoController.loadChannel("38yyniscxeglzr8n0lbku57b0");
+    _theoLive.loadChannel("2vqqekesftg9zuvxu9tdme6kl");
 
   }
 
@@ -37,20 +34,25 @@ class _MoviePageState extends State<MoviePage> implements THEOliveViewController
   bool loaded = false;
   bool inFullscreen = false;
 
-  late THEOliveView theoLiveView;
 
   @override
   void initState() {
     print("_MoviePageState with THEOliveView: initState ");
     super.initState();
-    theoLiveView = THEOliveView(key: playerUniqueKey, onTHEOliveViewCreated:(THEOliveViewController controller) {
-      // assign the controller to interact with the player
-      _theoController = controller;
-      _theoController.eventListener = this;
-      //_theoController.preloadChannels(["38yyniscxeglzr8n0lbku57b0"]);
+    _theoLive = THEOlive(
+        playerConfig: PlayerConfig(
+          AndroidConfig(
+            useHybridComposition: true,
+            nativeRenderingTarget: AndroidNativeRenderingTarget.surfaceView,
+          ),
+        ),
+        onCreate: () {
+          // assign the controller to interact with the player
+          _theoLive.addEventListener(this);
+          //_theoController.preloadChannels(["2vqqekesftg9zuvxu9tdme6kl"]);
 
-      // automatically load the channel once the view is ready
-      _callLoadChannel();
+          // automatically load the channel once the view is ready
+          _callLoadChannel();
     }
     );
 
@@ -63,16 +65,18 @@ class _MoviePageState extends State<MoviePage> implements THEOliveViewController
     // NOTE: this would be nicer, if we move it inside the THEOliveView that's a StatefulWidget
     // FIX for https://github.com/flutter/flutter/issues/97499
     //_theoController.manualDispose();
+    _theoLive.removeEventListener(this);
+    _theoLive.dispose();
     super.dispose();
   }
 
   void _playPause() {
     bool newState = false;
     if (playing) {
-      _theoController.pause();
+      _theoLive.pause();
       newState = false;
     } else {
-      _theoController.play();
+      _theoLive.play();
       newState = true;
     }
     setState(() {
@@ -133,7 +137,7 @@ class _MoviePageState extends State<MoviePage> implements THEOliveViewController
                 Stack(
                     alignment: Alignment.center,
                     children: [
-                      !inFullscreen ? Container(width: w, height: h, color: Colors.black, child: theoLiveView) : Container(),
+                      !inFullscreen ? Container(width: w, height: h, color: Colors.black, child: ChromelessPlayer(player: _theoLive, key: ChromelessPlayer.playerUniqueKey,)) : Container(),
                       !loaded ? Container(width: w, height: h, color: Colors.black, child: const Center(child: SizedBox(width: 50, height: 50, child: RefreshProgressIndicator()))) : Container(),
                     ]
                 ),
@@ -147,7 +151,7 @@ class _MoviePageState extends State<MoviePage> implements THEOliveViewController
 
                   //Navigator.push(context, MaterialPageRoute(builder: (context) =>  FullscreenPage(playerViewKey: playerUniqueKey,)));
                   Navigator.push(context, MaterialPageRoute(builder: (context){
-                    return FullscreenPage(playerWidget: theoLiveView,);
+                    return FullscreenPage(theoLive: _theoLive,);
                     //return FullscreenPage(playerViewKey: playerUniqueKey);
                   }, settings: null)).then((value){
                     print("_MoviePageState with THEOliveView: return from fullscreen ");
@@ -171,9 +175,11 @@ class _MoviePageState extends State<MoviePage> implements THEOliveViewController
   }
 
 
-  // THEOliveViewControllerEventListener interface methods
+  // THEOliveEventListener interface methods
   @override
-  void onChannelLoadedEvent(String channelID) {}
+  void onChannelLoaded(String channelID) {
+    // TODO: implement onChannelLoaded
+  }
 
   @override
   void onPlaying() {
@@ -183,13 +189,13 @@ class _MoviePageState extends State<MoviePage> implements THEOliveViewController
   }
 
   @override
-  void onChannelLoadStartEvent(String channelID) {
-    // TODO: implement onChannelLoadStartEvent
+  void onChannelLoadStart(String channelID) {
+    // TODO: implement onChannelLoadStart
   }
 
   @override
-  void onChannelOfflineEvent(String channelID) {
-    // TODO: implement onChannelOfflineEvent
+  void onChannelOffline(String channelID) {
+    // TODO: implement onChannelOffline
   }
 
   @override
@@ -222,3 +228,20 @@ class _MoviePageState extends State<MoviePage> implements THEOliveViewController
     // TODO: implement onWaiting
   }
 }
+
+class ChromelessPlayer extends StatelessWidget {
+  static GlobalKey playerUniqueKey = GlobalKey(debugLabel: "playerUniqueKey");
+
+  const ChromelessPlayer({
+    super.key,
+    required this.player,
+  });
+
+  final THEOlive player;
+
+  @override
+  Widget build(BuildContext context) {
+    return player.getView();
+  }
+}
+

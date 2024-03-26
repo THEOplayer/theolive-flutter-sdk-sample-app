@@ -26,15 +26,17 @@ class _MyAppState extends State<MyApp> {
         appBar: AppBar(
           title: const Text('THEOlive SDK Sample app'),
         ),
-        body: Column(mainAxisAlignment: MainAxisAlignment.center,children: [
-          const Text(
-            'THEOlive',
-          ),
+        body: Center(
+          child: Column(mainAxisAlignment: MainAxisAlignment.center ,children: [
+            const Text(
+              'THEOlive',
+            ),
 
-          FilledButton(onPressed: (){
-            Navigator.push(context, MaterialPageRoute(builder: (context) =>  const MoviePage(title: "Movie",)));
-          }, child: Text("Open Movie")),
-        ],)
+            FilledButton(onPressed: (){
+              Navigator.push(context, MaterialPageRoute(builder: (context) =>  const MoviePage(title: "Movie",)));
+            }, child: Text("Open Movie")),
+          ],),
+        )
 
       );
   }
